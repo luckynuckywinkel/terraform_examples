@@ -1,0 +1,46 @@
+provider "yandex" {
+  token = "ВАШ_ТОКЕН"
+  cloud_id = "ВАШ_ID_Облака"
+  folder_id = "ВАШ_ID_Папки"
+}
+
+resource "yandex_compute_instance" "my_instance" {
+  name = "my-instance"
+  zone = "ru-central1-a"
+  platform_id = "standard-v2"
+  cores = 2
+  memory = 2
+
+  boot_disk {
+    initialize_params {
+      image_id = "debian-9-latest"
+    }
+  }
+
+  connection {
+    type        = "ssh"
+    user        = "admin"
+    private_key = file("~/.ssh/id_rsa")
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo apt update",
+      "sudo apt install -y apt-transport-https ca-certificates curl gnupg lsb-release",
+      "curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg",
+      'echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null',
+      "sudo apt update",
+      "sudo apt install -y docker-ce docker-ce-cli containerd.io",
+      "sudo usermod -aG docker ${USER}",
+      "sudo systemctl enable docker",
+      "sudo systemctl start docker",
+      "sudo apt install -y default-jdk",
+      "wget -q -O - https://pkg.jenkins.io/debian/jenkins.io.key | sudo apt-key add -",
+      'sudo sh -c "echo deb https://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list"',
+      "sudo apt update",
+      "sudo apt install -y jenkins",
+      "sudo systemctl enable jenkins",
+      "sudo systemctl start jenkins"
+    ]
+  }
+}
